@@ -1,0 +1,31 @@
+services:
+  search:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    environment:
+      - SERVICE_FQDN_SEARCH_9000
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    depends_on:
+      - redis
+  
+  redis:
+    image: redis
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - '--raw'
+        - incr
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
