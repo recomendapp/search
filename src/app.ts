@@ -24,7 +24,6 @@ class App {
   public app: FastifyInstance;
   public port: number = parseInt(process.env.PORT || '9000');
   public host: string = process.env.HOST || '0.0.0.0';
-  public redisUrl: string = process.env.REDIS_URL || 'redis://localhost:6379';
 
   constructor() {
     this.app = Fastify({
@@ -59,7 +58,6 @@ class App {
   }
 
   private async initializePlugins() {
-	// await this.app.register(redis, { url: this.redisUrl });
     await this.app.register(cors);
 	await this.app.register(swagger, {
 		transform: jsonSchemaTransform
