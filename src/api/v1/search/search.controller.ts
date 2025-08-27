@@ -22,10 +22,10 @@ import {
 	PersonSearchQuery,
 	personSearchQuerySchema,
 	personSearchResponseSchema,
-	AllSearchQuery,
-	allSearchQuerySchema,
-	allSearchResponseSchema,
-	
+
+	BestResultsSearchQuery,
+	bestResultsSearchQuerySchema,
+	bestResultsSearchResponseSchema,
 } from '@recomendapp/types';
 import { SearchParams } from 'typesense/lib/Typesense/Documents';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -35,16 +35,16 @@ export default class SearchController implements Controller {
 	public register(server: FastifyInstance, prefix = ''): void {
 		const basePath = `${prefix}/search`;
 
-		// ALL
-		server.post<{ Querystring: AllSearchQuery }>(`${basePath}`, {
+		// BEST RESULTS
+		server.post<{ Querystring: BestResultsSearchQuery }>(`${basePath}/best-results`, {
 			onRequest: [verifyApiKey],
 			schema: {
-				querystring: allSearchQuerySchema,
+				querystring: bestResultsSearchQuerySchema,
 				response: {
-					200: allSearchResponseSchema,
+					200: bestResultsSearchResponseSchema,
 				}
 			}
-		}, this.searchAll);
+		}, this.searchBestResult);
 
 		// MOVIES
 		server.post<{ Querystring: MovieSearchQuery }>(`${basePath}/movies`, {
@@ -102,13 +102,13 @@ export default class SearchController implements Controller {
 		}, this.searchPlaylists);
 	}
 
-	// ALL
-	private searchAll = async (request: FastifyRequest<{ Querystring: AllSearchQuery }>, reply: FastifyReply) => {
+	// BEST RESULTS
+	private searchBestResult = async (request: FastifyRequest<{ Querystring: BestResultsSearchQuery }>, reply: FastifyReply) => {
 		const { query } = request.query;
 		const user = request.user as { sub: string } | undefined | null;
     	const userId = user?.sub;
 
-		request.log.info(`Performing an all-encompassing search with query: "${query}"`);
+		request.log.info(`Performing a best result search with query: "${query}"`);
 
 		const resultsPerType = 5;
 
