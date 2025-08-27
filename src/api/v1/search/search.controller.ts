@@ -121,7 +121,7 @@ export default class SearchController implements Controller {
 				{ collection: 'playlists', q: query, per_page: resultsPerType, query_by: 'title,description', filter_by: this.getPlaylistPermissionFilter(userId) }
 			];
 			const multiSearchResult = await typesenseClient.multiSearch.perform({ searches: searches }, {});
-			const { results } = multiSearchResult as { results: TypesenseSearchResult<{ id: string }>[] };
+			const { results } = multiSearchResult as { results: TypesenseSearchResult<{ id: string, popularity?: number, followers_count?: number, likes_count?: number }>[] };
 
         	const [moviesResult, tvSeriesResult, personsResult, usersResult, playlistsResult] = results;
 
@@ -140,8 +140,14 @@ export default class SearchController implements Controller {
 				{ type: 'playlist', hit: playlistsResult.hits?.[0] },
 			];
 			for (const candidate of potentialBest) {
-				if (candidate.hit && candidate.hit.text_match && (!bestResultMeta || candidate.hit.text_match > bestResultMeta.score)) {
-					bestResultMeta = { type: candidate.type, id: candidate.hit.document.id as string, score: candidate.hit.text_match };
+				if (candidate.hit?.document) {
+					const doc = candidate.hit.document;
+					const textScore = candidate.hit.text_match || 0;
+					const popularityMetric = doc.popularity || doc.followers_count || doc.likes_count || 0;
+					const hybridScore = textScore + Math.log10(popularityMetric + 1) * 0.1;
+					if (!bestResultMeta || hybridScore > bestResultMeta.score) {
+						bestResultMeta = { type: candidate.type, id: doc.id, score: hybridScore };
+					}
 				}
 			}
 
