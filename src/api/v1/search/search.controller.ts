@@ -139,12 +139,21 @@ export default class SearchController implements Controller {
 				{ type: 'user', hit: usersResult.hits?.[0] },
 				{ type: 'playlist', hit: playlistsResult.hits?.[0] },
 			];
+			const allHits = potentialBest.map(c => c.hit).filter(Boolean) as NonNullable<typeof potentialBest[0]['hit']>[];
+			const maxTextScore = Math.max(...allHits.map(h => h.text_match || 0), 1);
+			const maxPopularity = Math.max(...allHits.map(h => h.document.popularity || h.document.followers_count || h.document.likes_count || 0), 1);
+
 			for (const candidate of potentialBest) {
 				if (candidate.hit?.document) {
 					const doc = candidate.hit.document;
 					const textScore = candidate.hit.text_match || 0;
 					const popularityMetric = doc.popularity || doc.followers_count || doc.likes_count || 0;
-					const hybridScore = textScore + Math.log10(popularityMetric + 1) * 0.1;
+
+					const normalizedText = textScore / maxTextScore;
+					const normalizedPop = popularityMetric / maxPopularity;
+
+					const hybridScore = normalizedText * 0.9 + normalizedPop * 0.1;
+
 					if (!bestResultMeta || hybridScore > bestResultMeta.score) {
 						bestResultMeta = { type: candidate.type, id: doc.id, score: hybridScore };
 					}
