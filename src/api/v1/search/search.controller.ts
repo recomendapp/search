@@ -26,6 +26,7 @@ import {
 	BestResultsSearchQuery,
 	bestResultsSearchQuerySchema,
 	bestResultsSearchResponseSchema,
+	Database,
 } from '@recomendapp/types';
 import { SearchParams } from 'typesense/lib/Typesense/Documents';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -164,20 +165,34 @@ export default class SearchController implements Controller {
 				hydratedPersons,
 				hydratedUsers,
 				hydratedPlaylists,
-				hydratedBestResultData
 			] = await Promise.all([
 				this.hydrateByIds(request.supabaseClient, 'media_movie', movieIds),
 				this.hydrateByIds(request.supabaseClient, 'media_tv_series', tvSeriesIds),
 				this.hydrateByIds(request.supabaseClient, 'media_person', personIds),
 				this.hydrateByIds(request.supabaseClient, 'user', userIds),
-				this.hydrateByIds(request.supabaseClient, 'playlists', playlistIds),
-				bestResultMeta ? this.hydrateByIds(request.supabaseClient, this.getTableNameForType(bestResultMeta.type), [bestResultMeta.id]) : Promise.resolve([])
+				this.hydratePlaylists(request.supabaseClient, playlistIds.map(id => parseInt(id, 10))),
 			]);
 
-			const bestResult = bestResultMeta && hydratedBestResultData[0]
-				? { type: bestResultMeta.type, data: hydratedBestResultData[0] }
-				: null;
-			
+			const bestResult = bestResultMeta ? {
+				type: bestResultMeta.type,
+				data: (() => {
+					switch (bestResultMeta.type) {
+						case 'movie':
+							return hydratedMovies.find(movie => movie.id == bestResultMeta.id);
+						case 'tv_series':
+							return hydratedTvSeries.find(series => series.id == bestResultMeta.id);
+						case 'person':
+							return hydratedPersons.find(person => person.id == bestResultMeta.id);
+						case 'user':
+							return hydratedUsers.find(user => user.id == bestResultMeta.id);
+						case 'playlist':
+							return hydratedPlaylists.find(playlist => String(playlist?.id) == bestResultMeta.id);
+						default:
+							return null;
+					}
+				})()
+			} : null;
+
 			return {
 				bestResult,
 				movies: {
@@ -586,7 +601,7 @@ export default class SearchController implements Controller {
 
 			const { data: hydratedPlaylists, error } = await request.supabaseClient
 				.from('playlists')
-				.select('*')
+				.select('*, user(*)')
 				.in('id', playlistIds.map(id => parseInt(id, 10)));
 
 			if (error) throw new Error(error.message);
@@ -614,17 +629,6 @@ export default class SearchController implements Controller {
 		return userId ? `is_private:false || owner_id:=${userId} || guest_ids:=${userId}` : 'is_private:false';
 	}
 
-	private getTableNameForType = (type: string): string => {
-		const tableMap: Record<string, string> = {
-			movie: 'media_movie',
-			tv_series: 'media_tv_series',
-			person: 'media_person',
-			user: 'user',
-			playlist: 'playlists'
-		};
-		return tableMap[type];
-	}
-
 	private hydrateByIds = async (supabaseClient: SupabaseClient, tableName: string, ids: string[]): Promise<any[]> => {
 		if (ids.length === 0) return [];
 
@@ -634,5 +638,16 @@ export default class SearchController implements Controller {
 		const dataMap = new Map(data.map(item => [String(item.id), item]));
 		return ids.map(id => dataMap.get(id)).filter(Boolean);
 	}
+
+	private hydratePlaylists = async (supabaseClient: SupabaseClient<Database>, ids: number[]) => {
+		if (ids.length === 0) return [];
+
+		const { data, error } = await supabaseClient.from('playlists').select('*, user(*)').in('id', ids);
+		if (error) throw new Error(`Failed to hydrate playlists: ${error.message}`);
+
+		const dataMap = new Map(data.map(item => [item.id, item]));
+		return ids.map(id => dataMap.get(id)).filter(Boolean);
+	}
+
 	/* -------------------------------------------------------------------------- */
 }
