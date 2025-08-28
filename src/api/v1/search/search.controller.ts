@@ -104,21 +104,19 @@ export default class SearchController implements Controller {
 
 	// BEST RESULTS
 	private searchBestResult = async (request: FastifyRequest<{ Querystring: BestResultsSearchQuery }>, reply: FastifyReply) => {
-		const { query } = request.query;
+		const { query, results_per_type } = request.query;
 		const user = request.user as { sub: string } | undefined | null;
     	const userId = user?.sub;
 
 		request.log.info(`Performing a best result search with query: "${query}"`);
 
-		const resultsPerType = 5;
-
 		try {
 			const searches = [
-				{ collection: 'movies', q: query, per_page: resultsPerType, query_by: 'original_title,titles' },
-				{ collection: 'tv_series', q: query, per_page: resultsPerType, query_by: 'original_name,names' },
-				{ collection: 'persons', q: query, per_page: resultsPerType, query_by: 'name,also_known_as' },
-				{ collection: 'users', q: query, per_page: resultsPerType, query_by: 'username,full_name' },
-				{ collection: 'playlists', q: query, per_page: resultsPerType, query_by: 'title,description', filter_by: this.getPlaylistPermissionFilter(userId) }
+				{ collection: 'movies', q: query, per_page: results_per_type, query_by: 'original_title,titles' },
+				{ collection: 'tv_series', q: query, per_page: results_per_type, query_by: 'original_name,names' },
+				{ collection: 'persons', q: query, per_page: results_per_type, query_by: 'name,also_known_as' },
+				{ collection: 'users', q: query, per_page: results_per_type, query_by: 'username,full_name' },
+				{ collection: 'playlists', q: query, per_page: results_per_type, query_by: 'title,description', filter_by: this.getPlaylistPermissionFilter(userId) }
 			];
 			const multiSearchResult = await typesenseClient.multiSearch.perform({ searches: searches }, {});
 			const { results } = multiSearchResult as { results: TypesenseSearchResult<{ id: string, popularity?: number, followers_count?: number, likes_count?: number }>[] };
@@ -186,45 +184,45 @@ export default class SearchController implements Controller {
 					data: hydratedMovies,
 					pagination: {
 						total_results: moviesResult.found,
-						total_pages: Math.ceil(moviesResult.found / resultsPerType),
+						total_pages: Math.ceil(moviesResult.found / results_per_type),
 						current_page: 1,
-						per_page: resultsPerType,
+						per_page: results_per_type,
 					}
 				},
 				tv_series: {
 					data: hydratedTvSeries,
 					pagination: {
 						total_results: tvSeriesResult.found,
-						total_pages: Math.ceil(tvSeriesResult.found / resultsPerType),
+						total_pages: Math.ceil(tvSeriesResult.found / results_per_type),
 						current_page: 1,
-						per_page: resultsPerType,
+						per_page: results_per_type,
 					}
 				},
 				persons: {
 					data: hydratedPersons,
 					pagination: {
 						total_results: personsResult.found,
-						total_pages: Math.ceil(personsResult.found / resultsPerType),
+						total_pages: Math.ceil(personsResult.found / results_per_type),
 						current_page: 1,
-						per_page: resultsPerType,
+						per_page: results_per_type,
 					}
 				},
 				users: {
 					data: hydratedUsers,
 					pagination: {
 						total_results: usersResult.found,
-						total_pages: Math.ceil(usersResult.found / resultsPerType),
+						total_pages: Math.ceil(usersResult.found / results_per_type),
 						current_page: 1,
-						per_page: resultsPerType,
+						per_page: results_per_type,
 					}
 				},
 				playlists: {
 					data: hydratedPlaylists,
 					pagination: {
 						total_results: playlistsResult.found,
-						total_pages: Math.ceil(playlistsResult.found / resultsPerType),
+						total_pages: Math.ceil(playlistsResult.found / results_per_type),
 						current_page: 1,
-						per_page: resultsPerType,
+						per_page: results_per_type,
 					}
 				},
 			};
