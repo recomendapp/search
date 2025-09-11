@@ -113,11 +113,11 @@ export default class SearchController implements Controller {
 
 		try {
 			const searches = [
-				{ collection: 'movies', q: query, per_page: results_per_type, query_by: 'original_title,titles' },
-				{ collection: 'tv_series', q: query, per_page: results_per_type, query_by: 'original_name,names' },
-				{ collection: 'persons', q: query, per_page: results_per_type, query_by: 'name,also_known_as' },
-				{ collection: 'users', q: query, per_page: results_per_type, query_by: 'username,full_name' },
-				{ collection: 'playlists', q: query, per_page: results_per_type, query_by: 'title,description', filter_by: this.getPlaylistPermissionFilter(userId) }
+				{ collection: 'movies', q: query, per_page: results_per_type, query_by: 'original_title,titles', sort_by: '_text_match(buckets: 10):desc,popularity:desc' },
+				{ collection: 'tv_series', q: query, per_page: results_per_type, query_by: 'original_name,names', sort_by: '_text_match(buckets: 10):desc,popularity:desc' },
+				{ collection: 'persons', q: query, per_page: results_per_type, query_by: 'name,also_known_as', sort_by: '_text_match(buckets: 10):desc,popularity:desc' },
+				{ collection: 'users', q: query, per_page: results_per_type, query_by: 'username,full_name', sort_by: '_text_match(buckets: 10):desc,followers_count:desc' },
+				{ collection: 'playlists', q: query, per_page: results_per_type, query_by: 'title,description', filter_by: this.getPlaylistPermissionFilter(userId), sort_by: '_text_match(buckets: 10):desc,likes_count:desc' },
 			];
 			const multiSearchResult = await typesenseClient.multiSearch.perform({ searches: searches }, {});
 			const { results } = multiSearchResult as { results: TypesenseSearchResult<{ id: string, popularity?: number, followers_count?: number, likes_count?: number }>[] };
