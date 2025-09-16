@@ -169,7 +169,7 @@ export default class SearchController implements Controller {
 				this.hydrateByIds(request.supabaseClient, 'media_movie', movieIds),
 				this.hydrateByIds(request.supabaseClient, 'media_tv_series', tvSeriesIds),
 				this.hydrateByIds(request.supabaseClient, 'media_person', personIds),
-				this.hydrateByIds(request.supabaseClient, 'user', userIds),
+				this.hydrateByIds(request.supabaseClient, 'profile', userIds),
 				this.hydratePlaylists(request.supabaseClient, playlistIds.map(id => parseInt(id, 10))),
 			]);
 
