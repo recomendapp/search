@@ -548,7 +548,7 @@ export default class SearchController implements Controller {
 			}
 
 			const { data: hydratedUsers, error } = await request.supabaseClient
-				.from('user')
+				.from('profile')
 				.select('*')
 				.in('id', userIds);
 
@@ -601,7 +601,7 @@ export default class SearchController implements Controller {
 
 			const { data: hydratedPlaylists, error } = await request.supabaseClient
 				.from('playlists')
-				.select('*, user(*)')
+				.select('*, user:profile(*)')
 				.in('id', playlistIds.map(id => parseInt(id, 10)));
 
 			if (error) throw new Error(error.message);
@@ -642,7 +642,7 @@ export default class SearchController implements Controller {
 	private hydratePlaylists = async (supabaseClient: SupabaseClient<Database>, ids: number[]) => {
 		if (ids.length === 0) return [];
 
-		const { data, error } = await supabaseClient.from('playlists').select('*, user(*)').in('id', ids);
+		const { data, error } = await supabaseClient.from('playlists').select('*, user:profile(*)').in('id', ids);
 		if (error) throw new Error(`Failed to hydrate playlists: ${error.message}`);
 
 		const dataMap = new Map(data.map(item => [item.id, item]));
